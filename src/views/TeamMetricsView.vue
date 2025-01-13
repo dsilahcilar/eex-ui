@@ -195,7 +195,7 @@ export default {
       const sortedData = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       
       return {
-        labels: sortedData.map(item => new Date(item.timestamp).toLocaleDateString()),
+        labels: sortedData.map(item => new Date(item.timestamp).toLocaleString()),
         datasets: [
           {
             label: 'Value',
@@ -210,10 +210,12 @@ export default {
       }
     },
     formatValue(value) {
-      return typeof value === 'number' ? value.toFixed(2) : 'N/A'
+      if (value === null || value === undefined) return 'N/A'
+      return typeof value === 'number' ? value.toFixed(2) : value.toString()
     },
     formatDate(timestamp) {
-      return timestamp ? new Date(timestamp).toLocaleDateString() : 'N/A'
+      if (!timestamp) return 'N/A'
+      return new Date(timestamp).toLocaleString()
     }
   }
 }

@@ -10,6 +10,25 @@
           <p>{{ drivingFactor.description }}</p>
         </div>
 
+        <div class="type-info">
+          <div class="type">
+            <h3>Type</h3>
+            <p>{{ formatType(drivingFactor.type) }}</p>
+          </div>
+          <div class="subcategory">
+            <h3>Subcategory</h3>
+            <p>{{ drivingFactor.subcategory }}</p>
+          </div>
+        </div>
+
+        <div class="impact-areas">
+          <h3>Impact Areas</h3>
+          <ul v-if="drivingFactor.impactAreas.length">
+            <li v-for="area in drivingFactor.impactAreas" :key="area">{{ area }}</li>
+          </ul>
+          <p v-else>No impact areas specified</p>
+        </div>
+
         <div class="metrics-impacted">
           <h3>Metrics Impacted</h3>
           <ul v-if="drivingFactor.metricsImpacted.length">
@@ -24,10 +43,17 @@
 
         <div class="remediation-actions">
           <h3>Remediation Actions</h3>
-          <div v-if="drivingFactor.remediationActions.length" class="remediation-grid">
-            <div v-for="action in drivingFactor.remediationActions" :key="action" class="remediation-card">
-              <h4>{{ getRemediationActionName(action) }}</h4>
-              <p>{{ getRemediationActionDescription(action) }}</p>
+          <div v-if="drivingFactor.remediationActionLinks.length" class="remediation-grid">
+            <div v-for="actionLink in drivingFactor.remediationActionLinks" :key="actionLink.remediationActionId" 
+                 class="remediation-card" :class="{ primary: actionLink.primary }">
+              <div class="action-header">
+                <h4>{{ getRemediationActionName(actionLink.remediationActionId) }}</h4>
+                <span class="impact-badge" :class="actionLink.impact.toLowerCase()">
+                  {{ actionLink.impact }}
+                </span>
+                <span v-if="actionLink.primary" class="primary-badge">Primary</span>
+              </div>
+              <p>{{ getRemediationActionDescription(actionLink.remediationActionId) }}</p>
             </div>
           </div>
           <p v-else>No remediation actions</p>
@@ -63,7 +89,7 @@ export default {
         this.drivingFactor = response.data
 
         // Load all metrics to get names
-        const metricsResponse = await axios.get('http://localhost:8080/api/metrics/metrics')
+        const metricsResponse = await axios.get('http://localhost:8080/api/metrics')
         metricsResponse.data.forEach(metric => {
           this.metricNames[metric.id] = metric.name
         })
@@ -73,7 +99,8 @@ export default {
         actionsResponse.data.forEach(action => {
           this.remediationActions[action.id] = {
             name: action.name,
-            description: action.description
+            description: action.description,
+            type: action.type
           }
         })
 
@@ -91,6 +118,9 @@ export default {
     },
     getRemediationActionDescription(actionId) {
       return this.remediationActions[actionId]?.description || 'No description available'
+    },
+    formatType(type) {
+      return type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')
     }
   },
   watch: {
@@ -191,5 +221,61 @@ a:hover {
 
 .description p {
   line-height: 1.6;
+}
+
+.type-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.impact-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.impact-badge.low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.impact-badge.medium {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.impact-badge.high {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.primary-badge {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.action-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.action-header h4 {
+  margin: 0;
+  flex-grow: 1;
+}
+
+.remediation-card.primary {
+  border: 2px solid #1976d2;
 }
 </style> 

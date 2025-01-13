@@ -66,6 +66,13 @@ const COLORS = {
   }
 }
 
+const EDGE_COLORS = {
+  IMPACTS: '#e74c3c',
+  REMEDIATED_BY: '#f39c12',
+  LEADS_TO: '#42b983',
+  LAGS_BEHIND: '#7957d5'
+}
+
 export default {
   name: 'GraphView',
   data() {
@@ -89,18 +96,7 @@ export default {
       return COLORS[type] || COLORS.METRIC
     },
     getEdgeColor(type) {
-      switch (type) {
-        case 'IMPACTS':
-          return '#e74c3c' // Red for impact relationships
-        case 'REMEDIATED_BY':
-          return '#f39c12' // Orange for remediation relationships
-        case 'LEADS_TO':
-          return '#42b983' // Green for leading relationships
-        case 'LAGS_BEHIND':
-          return '#7957d5' // Purple for lagging relationships
-        default:
-          return '#666666'
-      }
+      return EDGE_COLORS[type] || '#666666'
     },
     getEdgeLabel(type) {
       switch (type) {
@@ -137,59 +133,63 @@ export default {
       this.filteredEdges = this.graphData.edges
       
       // Create nodes and edges with the filtered data
-      const nodes = this.filteredNodes.map(node => {
-        const colors = this.getNodeColor(node.type)
-        return {
-          id: node.id,
-          label: node.label,
-          title: `${node.label}\nType: ${node.type.replace('_', ' ')}\n\n${node.description}`,
-          color: {
-            background: colors.background,
-            border: colors.border,
-            highlight: {
+      const nodes = new DataSet(
+        this.filteredNodes.map(node => {
+          const colors = this.getNodeColor(node.type)
+          return {
+            id: node.id,
+            label: node.label,
+            title: `${node.label}\nType: ${node.type.replace('_', ' ')}\n\n${node.description}`,
+            color: {
               background: colors.background,
-              border: colors.border
+              border: colors.border,
+              highlight: {
+                background: colors.background,
+                border: colors.border
+              }
+            },
+            font: {
+              size: 14,
+              color: '#2c3e50',
+              face: 'Avenir, Helvetica, Arial',
+              multi: true,
+              mod: 'bold'
+            },
+            shape: node.type === 'METRIC' ? 'dot' : (node.type === 'DRIVING_FACTOR' ? 'diamond' : 'hexagon'),
+            size: node.type === 'METRIC' ? 30 : 35,
+            margin: 12
+          }
+        })
+      )
+
+      const edges = new DataSet(
+        this.filteredEdges.map(edge => ({
+          from: edge.source,
+          to: edge.target,
+          arrows: {
+            to: {
+              enabled: true,
+              scaleFactor: 1
             }
           },
-          font: {
-            size: 14,
-            color: '#2c3e50',
-            face: 'Avenir, Helvetica, Arial',
-            multi: true,
-            mod: 'bold'
+          color: {
+            color: this.getEdgeColor(edge.type),
+            highlight: this.getEdgeColor(edge.type),
+            hover: this.getEdgeColor(edge.type)
           },
-          shape: node.type === 'METRIC' ? 'dot' : (node.type === 'DRIVING_FACTOR' ? 'diamond' : 'hexagon'),
-          size: node.type === 'METRIC' ? 30 : 35,
-          margin: 12
-        }
-      })
-
-      const edges = this.filteredEdges.map(edge => ({
-        from: edge.source,
-        to: edge.target,
-        arrows: {
-          to: {
-            enabled: true,
-            scaleFactor: 1
-          }
-        },
-        color: {
-          color: this.getEdgeColor(edge.type),
-          highlight: this.getEdgeColor(edge.type),
-          hover: this.getEdgeColor(edge.type)
-        },
-        label: this.getEdgeLabel(edge.type),
-        font: {
-          size: 12,
-          color: this.getEdgeColor(edge.type),
-          align: 'middle'
-        },
-        smooth: {
-          type: 'curvedCW',
-          roundness: 0.2
-        },
-        width: 3
-      }))
+          label: this.getEdgeLabel(edge.type),
+          font: {
+            size: 12,
+            color: this.getEdgeColor(edge.type),
+            align: 'middle'
+          },
+          smooth: {
+            type: 'curvedCW',
+            roundness: 0.2
+          },
+          width: 3
+        }))
+      )
 
       const options = {
         nodes: {
@@ -233,7 +233,7 @@ export default {
             gravitationalConstant: -10000,
             springConstant: 0.04,
             springLength: 250,
-            avoidOverlap: 0.5 // Prevent node overlap
+            avoidOverlap: 0.5
           }
         },
         interaction: {
@@ -327,6 +327,7 @@ export default {
       this.filteredEdges = this.graphData.edges
       this.updateGraphData()
       this.isFiltered = false
+      this.activeTypeFilter = null
     },
 
     updateGraphData() {

@@ -75,11 +75,11 @@ export default {
       const metricId = this.$route.params.id
       try {
         // Load metric details
-        const response = await axios.get(`http://localhost:8080/api/metrics/metrics/${metricId}`)
+        const response = await axios.get(`http://localhost:8080/api/metrics/${metricId}`)
         this.metric = response.data
 
         // Load all metrics to get names for relationships
-        const metricsResponse = await axios.get('http://localhost:8080/api/metrics/metrics')
+        const metricsResponse = await axios.get('http://localhost:8080/api/metrics')
         metricsResponse.data.forEach(metric => {
           this.metricNames[metric.id] = metric.name
         })
