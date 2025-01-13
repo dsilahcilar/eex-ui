@@ -5,6 +5,43 @@
     <div v-else>
       <h1>Team Metrics</h1>
       
+      <!-- Core Values Section -->
+      <div class="core-values">
+        <h2>Core Values</h2>
+        <div class="core-values-grid">
+          <div class="core-value-card speed">
+            <h3>Speed</h3>
+            <div class="value">
+              {{ formatValue(coreValues.speed?.value) }}
+              <span class="trend-indicator" :class="getTrendClass(coreValues.speed?.trend)">
+                {{ getTrendSymbol(coreValues.speed?.trend) }}
+              </span>
+            </div>
+            <div class="timestamp">Last updated: {{ formatDate(coreValues.speed?.timestamp) }}</div>
+          </div>
+          <div class="core-value-card quality">
+            <h3>Quality</h3>
+            <div class="value">
+              {{ formatValue(coreValues.quality?.value) }}
+              <span class="trend-indicator" :class="getTrendClass(coreValues.quality?.trend)">
+                {{ getTrendSymbol(coreValues.quality?.trend) }}
+              </span>
+            </div>
+            <div class="timestamp">Last updated: {{ formatDate(coreValues.quality?.timestamp) }}</div>
+          </div>
+          <div class="core-value-card impact">
+            <h3>Impact</h3>
+            <div class="value">
+              {{ formatValue(coreValues.impact?.value) }}
+              <span class="trend-indicator" :class="getTrendClass(coreValues.impact?.trend)">
+                {{ getTrendSymbol(coreValues.impact?.trend) }}
+              </span>
+            </div>
+            <div class="timestamp">Last updated: {{ formatDate(coreValues.impact?.timestamp) }}</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Current Values Table -->
       <div class="current-values">
         <h2>Current Values</h2>
@@ -87,6 +124,11 @@ export default {
       error: null,
       metricsData: [],
       metricNames: {},
+      coreValues: {
+        speed: null,
+        quality: null,
+        impact: null
+      },
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -99,10 +141,17 @@ export default {
     }
   },
   async created() {
-    await Promise.all([
-      this.loadMetricsData(),
-      this.loadMetricNames()
-    ])
+    try {
+      await Promise.all([
+        this.loadMetricsData(),
+        this.loadMetricNames(),
+        this.loadCoreValues()
+      ])
+      this.loading = false
+    } catch (err) {
+      this.error = err.message
+      this.loading = false
+    }
   },
   computed: {
     groupedData() {
@@ -171,6 +220,62 @@ export default {
         console.error('Error loading metric names:', err)
       }
     },
+    async loadCoreValues() {
+      try {
+        const teamId = this.$route.params.id;
+        const response = await axios.get(`http://localhost:8080/api/metrics/values/core-values/team/${teamId}`);
+        const coreValuesData = response.data;
+        console.log('Raw Core Values Data:', coreValuesData);
+
+        // Reset core values
+        this.coreValues = {
+          speed: null,
+          quality: null,
+          impact: null
+        };
+
+        // Define mapping of metric IDs to core values
+        const metricMapping = {
+          'lead_time_for_changes': 'speed',
+          'deployment_frequency': 'speed',
+          'change_failure_rate': 'quality',
+          'mean_time_to_recovery': 'quality',
+          'customer_satisfaction': 'impact',
+          'business_value_delivered': 'impact'
+        };
+
+        // Group and sort values by metricId
+        const groupedValues = {};
+        coreValuesData.forEach(value => {
+          if (!groupedValues[value.metricId]) {
+            groupedValues[value.metricId] = [];
+          }
+          groupedValues[value.metricId].push(value);
+        });
+
+        // Sort values by timestamp and calculate trends
+        Object.entries(groupedValues).forEach(([metricId, values]) => {
+          const sortedValues = values.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          const coreValueCategory = metricMapping[metricId];
+          
+          if (coreValueCategory && sortedValues.length > 0) {
+            const latestValue = sortedValues[0].value;
+            const previousValue = sortedValues[1]?.value;
+            
+            this.coreValues[coreValueCategory] = {
+              value: latestValue,
+              timestamp: sortedValues[0].timestamp,
+              trend: this.calculateTrend(latestValue, previousValue)
+            };
+          }
+        });
+
+        console.log('Final Core Values State:', this.coreValues);
+      } catch (err) {
+        console.error('Error loading core values:', err);
+        throw err;
+      }
+    },
     getMetricName(indicator) {
       return this.metricNames[indicator] || `Metric ${indicator}`
     },
@@ -216,6 +321,25 @@ export default {
     formatDate(timestamp) {
       if (!timestamp) return 'N/A'
       return new Date(timestamp).toLocaleString()
+    },
+    getTrendSymbol(trend) {
+      if (!trend) return '';
+      switch (trend) {
+        case 'up': return '↑';
+        case 'down': return '↓';
+        case 'neutral': return '→';
+        default: return '';
+      }
+    },
+    getTrendClass(trend) {
+      if (!trend) return '';
+      return `trend-${trend}`;
+    },
+    calculateTrend(currentValue, previousValue) {
+      if (!currentValue || !previousValue) return null;
+      if (currentValue > previousValue) return 'up';
+      if (currentValue < previousValue) return 'down';
+      return 'neutral';
     }
   }
 }
@@ -326,5 +450,72 @@ td.value {
   background: #f8f8f8;
   border-radius: 4px;
   margin-top: 10px;
+}
+
+.core-values {
+  margin-bottom: 40px;
+}
+
+.core-values-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.core-value-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.core-value-card h3 {
+  color: #2c3e50;
+  margin: 0 0 15px 0;
+  font-size: 1.2em;
+}
+
+.core-value-card .value {
+  font-size: 2em;
+  font-weight: bold;
+  color: #42b983;
+  margin-bottom: 10px;
+}
+
+.core-value-card .timestamp {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.core-value-card.speed {
+  border-top: 4px solid #42b983;
+}
+
+.core-value-card.quality {
+  border-top: 4px solid #7957d5;
+}
+
+.core-value-card.impact {
+  border-top: 4px solid #ff9f43;
+}
+
+.trend-indicator {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.8em;
+}
+
+.trend-up {
+  color: #42b983;
+}
+
+.trend-down {
+  color: #ff4757;
+}
+
+.trend-neutral {
+  color: #7f8c8d;
 }
 </style> 

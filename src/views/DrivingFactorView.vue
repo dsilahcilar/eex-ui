@@ -45,15 +45,74 @@
           <h3>Remediation Actions</h3>
           <div v-if="drivingFactor.remediationActionLinks.length" class="remediation-grid">
             <div v-for="actionLink in drivingFactor.remediationActionLinks" :key="actionLink.remediationActionId" 
-                 class="remediation-card" :class="{ primary: actionLink.primary }">
+                 class="remediation-card" :class="{ primary: actionLink.isPrimary }">
               <div class="action-header">
                 <h4>{{ getRemediationActionName(actionLink.remediationActionId) }}</h4>
                 <span class="impact-badge" :class="actionLink.impact.toLowerCase()">
                   {{ actionLink.impact }}
                 </span>
-                <span v-if="actionLink.primary" class="primary-badge">Primary</span>
+                <span v-if="actionLink.isPrimary" class="primary-badge">Primary</span>
               </div>
-              <p>{{ getRemediationActionDescription(actionLink.remediationActionId) }}</p>
+              <div class="action-content">
+                <p class="description">{{ getRemediationActionDescription(actionLink.remediationActionId) }}</p>
+                
+                <div class="action-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Type:</span>
+                    <span class="detail-value">{{ formatType(getRemediationActionType(actionLink.remediationActionId)) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Implementation Complexity:</span>
+                    <span class="detail-value complexity-badge" :class="getRemediationActionComplexity(actionLink.remediationActionId).toLowerCase()">
+                      {{ getRemediationActionComplexity(actionLink.remediationActionId) }}
+                    </span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Time Investment:</span>
+                    <span class="detail-value investment-badge" :class="getRemediationActionTimeInvestment(actionLink.remediationActionId).toLowerCase()">
+                      {{ getRemediationActionTimeInvestment(actionLink.remediationActionId) }}
+                    </span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Cost Investment:</span>
+                    <span class="detail-value investment-badge" :class="getRemediationActionCostInvestment(actionLink.remediationActionId).toLowerCase()">
+                      {{ getRemediationActionCostInvestment(actionLink.remediationActionId) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="action-section">
+                  <h5>Expected Outcomes</h5>
+                  <ul class="outcome-list">
+                    <li v-for="(outcome, index) in getRemediationActionOutcomes(actionLink.remediationActionId)" 
+                        :key="index">{{ outcome }}</li>
+                  </ul>
+                </div>
+
+                <div class="action-section">
+                  <h5>Implementation Steps</h5>
+                  <ol class="step-list">
+                    <li v-for="(step, index) in getRemediationActionSteps(actionLink.remediationActionId)" 
+                        :key="index">{{ step }}</li>
+                  </ol>
+                </div>
+
+                <div class="action-section">
+                  <h5>Success Metrics</h5>
+                  <ul class="metric-list">
+                    <li v-for="metric in getRemediationActionSuccessMetrics(actionLink.remediationActionId)" 
+                        :key="metric">{{ metric }}</li>
+                  </ul>
+                </div>
+
+                <div class="action-section">
+                  <h5>Resources Needed</h5>
+                  <ul class="resource-list">
+                    <li v-for="(resource, index) in getRemediationActionResources(actionLink.remediationActionId)" 
+                        :key="index">{{ resource }}</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
           <p v-else>No remediation actions</p>
@@ -100,7 +159,14 @@ export default {
           this.remediationActions[action.id] = {
             name: action.name,
             description: action.description,
-            type: action.type
+            type: action.type,
+            implementationComplexity: action.implementationComplexity,
+            timeInvestment: action.timeInvestment,
+            costInvestment: action.costInvestment,
+            expectedOutcomes: action.expectedOutcomes,
+            implementationSteps: action.implementationSteps,
+            successMetrics: action.successMetrics,
+            resourcesNeeded: action.resourcesNeeded
           }
         })
 
@@ -121,6 +187,30 @@ export default {
     },
     formatType(type) {
       return type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')
+    },
+    getRemediationActionType(actionId) {
+      return this.remediationActions[actionId]?.type || 'Unknown'
+    },
+    getRemediationActionComplexity(actionId) {
+      return this.remediationActions[actionId]?.implementationComplexity || 'Unknown'
+    },
+    getRemediationActionTimeInvestment(actionId) {
+      return this.remediationActions[actionId]?.timeInvestment || 'Unknown'
+    },
+    getRemediationActionCostInvestment(actionId) {
+      return this.remediationActions[actionId]?.costInvestment || 'Unknown'
+    },
+    getRemediationActionOutcomes(actionId) {
+      return this.remediationActions[actionId]?.expectedOutcomes || []
+    },
+    getRemediationActionSteps(actionId) {
+      return this.remediationActions[actionId]?.implementationSteps || []
+    },
+    getRemediationActionSuccessMetrics(actionId) {
+      return this.remediationActions[actionId]?.successMetrics || []
+    },
+    getRemediationActionResources(actionId) {
+      return this.remediationActions[actionId]?.resourcesNeeded || []
     }
   },
   watch: {
@@ -182,10 +272,11 @@ export default {
 }
 
 .remediation-card {
-  background: #f8f9fa;
-  border-radius: 6px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .remediation-card h4 {
@@ -277,5 +368,91 @@ a:hover {
 
 .remediation-card.primary {
   border: 2px solid #1976d2;
+}
+
+.action-content {
+  margin-top: 15px;
+}
+
+.action-details {
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #475569;
+  width: 180px;
+}
+
+.detail-value {
+  color: #1e293b;
+}
+
+.complexity-badge, .investment-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+.complexity-badge.low, .investment-badge.low {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.complexity-badge.medium, .investment-badge.medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.complexity-badge.high, .investment-badge.high {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.action-section {
+  margin-top: 20px;
+}
+
+.action-section h5 {
+  color: #475569;
+  font-size: 1em;
+  margin-bottom: 10px;
+}
+
+.outcome-list, .step-list, .metric-list, .resource-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.outcome-list li, .metric-list li, .resource-list li {
+  margin: 5px 0;
+  color: #475569;
+}
+
+.step-list li {
+  margin: 8px 0;
+  color: #475569;
+  padding-left: 5px;
+}
+
+.description {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 20px;
 }
 </style> 

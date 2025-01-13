@@ -13,30 +13,6 @@
           <h3>Type</h3>
           <p>{{ metric.type }}</p>
         </div>
-        <div class="relationships">
-          <div class="leading">
-            <h3>Leading Indicators</h3>
-            <ul v-if="metric.relationships.leadingIndicators.length">
-              <li v-for="indicator in metric.relationships.leadingIndicators" :key="indicator">
-                <router-link :to="{ name: 'metric-details', params: { id: indicator }}">
-                  {{ getMetricName(indicator) }}
-                </router-link>
-              </li>
-            </ul>
-            <p v-else>No leading indicators</p>
-          </div>
-          <div class="lagging">
-            <h3>Lagging Indicators</h3>
-            <ul v-if="metric.relationships.laggingIndicators.length">
-              <li v-for="indicator in metric.relationships.laggingIndicators" :key="indicator">
-                <router-link :to="{ name: 'metric-details', params: { id: indicator }}">
-                  {{ getMetricName(indicator) }}
-                </router-link>
-              </li>
-            </ul>
-            <p v-else>No lagging indicators</p>
-          </div>
-        </div>
         <div class="driving-factors">
           <h3>Driving Factors</h3>
           <ul v-if="metric.drivingFactors.length">
@@ -153,12 +129,6 @@ export default {
   color: #42b983;
   margin-bottom: 10px;
   font-size: 1.2em;
-}
-
-.relationships {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
 }
 
 ul {
