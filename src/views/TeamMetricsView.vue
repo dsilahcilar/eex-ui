@@ -3,12 +3,19 @@
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
-      <h1>Team Metrics</h1>
+      <h1>{{ teamName }} Metrics</h1>
       
       <!-- Core Values Section -->
       <div class="core-values">
         <h2>Core Values</h2>
         <div class="core-values-grid">
+          <div class="core-value-card devex">
+            <h3>DevEx Score</h3>
+            <div class="value">
+              {{ calculateDevExScore() }}
+            </div>
+            <div class="timestamp">Last updated: {{ getLatestTimestamp() }}</div>
+          </div>
           <div class="core-value-card speed">
             <h3>Speed</h3>
             <div class="value">
@@ -124,6 +131,7 @@ export default {
       error: null,
       metricsData: [],
       metricNames: {},
+      teamName: '',
       coreValues: {
         speed: null,
         quality: null,
@@ -143,6 +151,7 @@ export default {
   async created() {
     try {
       await Promise.all([
+        this.loadTeamName(),
         this.loadMetricsData(),
         this.loadMetricNames(),
         this.loadCoreValues()
@@ -194,6 +203,16 @@ export default {
     }
   },
   methods: {
+    async loadTeamName() {
+      try {
+        const teamId = this.$route.params.id;
+        const response = await axios.get(`http://localhost:8080/api/organization/teams/${teamId}`);
+        this.teamName = response.data.name;
+      } catch (err) {
+        console.error('Error loading team name:', err);
+        this.teamName = 'Team';  // Fallback if team name can't be loaded
+      }
+    },
     async loadMetricsData() {
       try {
         const teamId = this.$route.params.id
@@ -340,6 +359,33 @@ export default {
       if (currentValue > previousValue) return 'up';
       if (currentValue < previousValue) return 'down';
       return 'neutral';
+    },
+    calculateDevExScore() {
+      const values = [
+        this.coreValues.speed?.value,
+        this.coreValues.quality?.value,
+        this.coreValues.impact?.value
+      ];
+      
+      // Filter out null/undefined values and sum them
+      const sum = values
+        .filter(value => value !== null && value !== undefined)
+        .reduce((acc, curr) => acc + curr, 0);
+      
+      return this.formatValue(sum);
+    },
+    getLatestTimestamp() {
+      const timestamps = [
+        this.coreValues.speed?.timestamp,
+        this.coreValues.quality?.timestamp,
+        this.coreValues.impact?.timestamp
+      ].filter(Boolean);
+      
+      if (!timestamps.length) return 'N/A';
+      
+      // Get the most recent timestamp
+      const latestTimestamp = new Date(Math.max(...timestamps.map(t => new Date(t))));
+      return this.formatDate(latestTimestamp);
     }
   }
 }
@@ -458,39 +504,43 @@ td.value {
 
 .core-values-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
   margin-top: 20px;
 }
 
 .core-value-card {
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .core-value-card h3 {
   color: #2c3e50;
-  margin: 0 0 15px 0;
-  font-size: 1.2em;
+  margin: 0 0 10px 0;
+  font-size: 1.1em;
 }
 
 .core-value-card .value {
-  font-size: 2em;
+  font-size: 1.6em;
   font-weight: bold;
   color: #42b983;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .core-value-card .timestamp {
-  font-size: 0.9em;
+  font-size: 0.8em;
   color: #666;
 }
 
 .core-value-card.speed {
   border-top: 4px solid #42b983;
+}
+
+.core-value-card.devex {
+  border-top: 4px solid #7957d5;
 }
 
 .core-value-card.quality {
